@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+require "aws-sdk-lambda"
+require "aws-sdk-s3"
+require "httparty"
+
+source = ARGV[0]
+dest = ARGV[1]
+
+lamb = Aws::Lambda::Client.new(:region => "eu-west-1")
+original_function = lamb.get_function(:function_name => source)
+
+resp = HTTParty.get(original_function.code.location)
+
+new_function = lamb.create_function({
+  :function_name => dest,
+  :code => {
+    :zip_file => resp.body
+  },
+  :tags => original_function.tags || {},
+  :description => original_function.configuration.description,
+  :environment => {
+    :variables => original_function.configuration.environment.variables
+  },
+  :handler => original_function.configuration.handler,
+  :kms_key_arn => original_function.configuration.kms_key_arn,
+  :memory_size => original_function.configuration.memory_size,
+  :publish => true,
+  :role => original_function.configuration.role,
+  :runtime => original_function.configuration.runtime,
+  :timeout => original_function.configuration.timeout,
+  :tracing_config => {
+    :mode => original_function.configuration.tracing_config.mode
+  },
+  :layers => original_function.configuration.layers.map(&:arn),
+  :vpc_config => {
+    :subnet_ids => original_function.configuration.vpc_config.subnet_ids,
+    :security_group_ids => original_function.configuration.vpc_config.security_group_ids
+  }
+  # TODO file system configs
+})
+
+

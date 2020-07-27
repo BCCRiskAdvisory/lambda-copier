@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+require "aws-sdk-lambda"
+require "aws-sdk-s3"
+
+require "irb"
+
+IRB.start
+
